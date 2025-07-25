@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DirectDrop - Secure Peer-to-Peer File Transfer</title>
+    <!-- Inter Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body { font-family: 'Inter', sans-serif; }
+      .hidden { display: none !important; }
+    </style>
+  </head>
+  <body class="bg-gray-900 text-gray-100 min-h-screen flex items-center justify-center">
+    <div class="w-full max-w-lg mx-auto p-6 rounded-2xl bg-gray-800 shadow-lg flex flex-col items-center" aria-label="DirectDrop main panel">
+      <!-- Header -->
+      <header class="mb-8 text-center">
+        <h1 class="text-4xl font-bold tracking-tight">DirectDrop</h1>
+        <p class="text-lg text-gray-400 mt-2">Secure Peer-to-Peer File Transfer</p>
+        <button id="theme-toggle" class="mt-4 px-3 py-1 rounded bg-gray-700 text-gray-200 hover:bg-gray-600 focus:outline-none" aria-label="Toggle dark/light mode">Toggle Theme</button>
+      </header>
+      <!-- Send Option Toggle -->
+      <div class="w-full flex justify-center mb-4">
+        <label class="mr-4"><input type="radio" name="send-type" id="send-files" checked> Files</label>
+        <label><input type="radio" name="send-type" id="send-folder"> Folder</label>
+      </div>
+      <!-- File Drop Zone -->
+      <div id="drop-zone" class="w-full flex flex-col items-center justify-center border-2 border-dashed border-gray-500 rounded-xl p-10 mb-8 bg-gray-700 transition-colors duration-200 cursor-pointer hover:border-blue-400 focus-within:border-blue-400" tabindex="0" aria-label="File drop zone">
+        <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-8m0 0l-4 4m4-4l4 4M20 16.58A5 5 0 0018 7h-1.26A8 8 0 104 15.25" />
+        </svg>
+        <p class="text-lg text-gray-300" id="drop-zone-text">Drag & drop files here or <span class="text-blue-400 underline">click to select</span></p>
+        <input type="file" id="file-input" class="hidden" multiple aria-label="File input" />
+        <input type="file" id="folder-input" class="hidden" webkitdirectory directory aria-label="Folder input" />
+      </div>
+      <!-- Transfer Info Section -->
+      <section id="transfer-info" class="w-full hidden flex-col items-center mb-8" aria-label="Transfer info">
+        <div class="flex flex-col items-center mb-4 w-full">
+          <div id="selected-label" class="text-lg font-semibold text-center"></div>
+          <div id="sender-progress-container" class="w-full mt-4 hidden">
+            <div class="w-full bg-gray-700 rounded-lg h-4 overflow-hidden">
+              <div id="sender-progress-bar" class="bg-blue-500 h-4 w-0 transition-all duration-300"></div>
+            </div>
+            <span id="sender-progress-text" class="text-gray-400 text-sm"></span>
+          </div>
+          <div id="receiver-progress-container" class="w-full mt-4 hidden">
+            <div class="w-full bg-gray-700 rounded-lg h-4 overflow-hidden">
+              <div id="receiver-progress-bar" class="bg-blue-500 h-4 w-0 transition-all duration-300"></div>
+            </div>
+            <span id="receiver-progress-text" class="text-gray-400 text-sm"></span>
+          </div>
+        </div>
+        <div id="sender-share-section">
+          <div id="share-link-container" class="w-full flex items-center mb-4">
+            <input id="share-link" type="text" readonly disabled class="flex-1 bg-gray-700 text-gray-300 rounded-l-lg px-3 py-2 border border-gray-600 focus:outline-none" />
+            <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg font-semibold transition-colors duration-150 disabled:opacity-50" id="copy-link" disabled>Copy</button>
+          </div>
+          <div class="flex justify-center mb-2">
+            <div id="qr-code" class="w-28 h-28 bg-gray-600 rounded-lg flex items-center justify-center">
+              <!-- QR code placeholder -->
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Progress Section -->
+      <section id="progress-section" class="w-full hidden flex-col items-center mb-8" aria-label="Progress section">
+        <span id="status-message" class="mb-2 text-gray-300">Waiting for receiver to connect...</span>
+        <div class="w-full bg-gray-700 rounded-lg h-4 mb-2 overflow-hidden">
+          <div id="progress-bar" class="bg-blue-500 h-4 w-0 transition-all duration-300"></div>
+        </div>
+        <span id="progress-text" class="text-gray-400 text-sm"></span>
+      </section>
+      <!-- Download Button -->
+      <button id="download-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg mt-4 hidden transition-colors duration-150">Download File</button>
+      <!-- Toast Notification -->
+      <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-4 py-2 rounded-lg shadow-lg hidden z-50" role="alert" aria-live="polite"></div>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html> 

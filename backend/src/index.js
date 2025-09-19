@@ -84,9 +84,13 @@ const roomToSockets = new Map();
 // Input validation functions
 const validateRoomKey = (roomKey) => {
 	return typeof roomKey === 'string' && 
-		   /^[a-zA-Z0-9]{6,8}$/.test(roomKey) && 
-		   roomKey.length >= 6 && 
-		   roomKey.length <= 8;
+		   /^[a-zA-Z0-9]{8}$/.test(roomKey) && 
+		   roomKey.length === 8;
+};
+
+// Normalize room key to lowercase for consistent comparison
+const normalizeRoomKey = (roomKey) => {
+	return roomKey.toLowerCase();
 };
 
 const validateSignalData = (data) => {
@@ -131,20 +135,23 @@ io.on('connection', (socket) => {
 		
 		// Input validation
 		if (!validateRoomKey(roomKey)) {
-			socket.emit('error', 'Invalid room key format. Must be 6-8 alphanumeric characters.');
+			socket.emit('error', 'Invalid room key format. Must be exactly 8 alphanumeric characters.');
 			return;
 		}
 		
+		// Normalize room key for consistent storage
+		const normalizedKey = normalizeRoomKey(roomKey);
+		
 		// Check if room already exists with 2+ users
-		if (roomToSockets.has(roomKey) && roomToSockets.get(roomKey).size >= 2) {
+		if (roomToSockets.has(normalizedKey) && roomToSockets.get(normalizedKey).size >= 2) {
 			socket.emit('error', 'Room is full. Maximum 2 users per room.');
 			return;
 		}
 		
-		socket.join(roomKey);
-		if (!roomToSockets.has(roomKey)) roomToSockets.set(roomKey, new Set());
-		roomToSockets.get(roomKey).add(socket.id);
-		socket.emit('room-created', { roomKey });
+		socket.join(normalizedKey);
+		if (!roomToSockets.has(normalizedKey)) roomToSockets.set(normalizedKey, new Set());
+		roomToSockets.get(normalizedKey).add(socket.id);
+		socket.emit('room-created', { roomKey: normalizedKey });
 	});
 
     // Join an existing room (receiver only)
@@ -157,28 +164,31 @@ io.on('connection', (socket) => {
 		
 		// Input validation
 		if (!validateRoomKey(roomKey)) {
-			socket.emit('error', 'Invalid room key format. Must be 6-8 alphanumeric characters.');
+			socket.emit('error', 'Invalid room key format. Must be exactly 8 alphanumeric characters.');
 			return;
 		}
 		
+		// Normalize room key for consistent lookup
+		const normalizedKey = normalizeRoomKey(roomKey);
+		
 		// Check if room exists
-		if (!roomToSockets.has(roomKey)) {
+		if (!roomToSockets.has(normalizedKey)) {
 			socket.emit('room-not-found');
 			return;
 		}
 		
 		// Check if room is full
-		if (roomToSockets.get(roomKey).size >= 2) {
+		if (roomToSockets.get(normalizedKey).size >= 2) {
 			socket.emit('error', 'Room is full. Maximum 2 users per room.');
 			return;
 		}
 		
-		socket.join(roomKey);
-		roomToSockets.get(roomKey).add(socket.id);
+		socket.join(normalizedKey);
+		roomToSockets.get(normalizedKey).add(socket.id);
 		socket.emit('room-joined');
 		
 		// Notify sender that receiver joined
-		socket.to(roomKey).emit('peer-joined', socket.id);
+		socket.to(normalizedKey).emit('peer-joined', socket.id);
 	});
 
 	// Relay WebRTC signaling messages in a room
@@ -195,19 +205,22 @@ io.on('connection', (socket) => {
 			return;
 		}
 		
+		// Normalize room key for consistent lookup
+		const normalizedKey = normalizeRoomKey(roomKey);
+		
 		// Verify user is in the room
-		if (!roomToSockets.has(roomKey) || !roomToSockets.get(roomKey).has(socket.id)) {
+		if (!roomToSockets.has(normalizedKey) || !roomToSockets.get(normalizedKey).has(socket.id)) {
 			socket.emit('error', 'You are not authorized to send signals to this room.');
 			return;
 		}
 		
 		if (to) {
 			// Verify target user exists in room
-			if (roomToSockets.get(roomKey).has(to)) {
+			if (roomToSockets.get(normalizedKey).has(to)) {
 				io.to(to).emit('signal', { from: socket.id, data });
 			}
 		} else {
-			socket.to(roomKey).emit('signal', { from: socket.id, data });
+			socket.to(normalizedKey).emit('signal', { from: socket.id, data });
 		}
 	});
 

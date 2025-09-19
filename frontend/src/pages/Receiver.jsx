@@ -440,7 +440,7 @@ export default function Receiver() {
 	}
 
 	function joinRoom() {
-		if (!roomKey || roomKey.length !== 6) return
+		if (!roomKey || roomKey.length !== 8) return
 		
 		if (socketRef.current) {
 			socketRef.current.disconnect()
@@ -452,15 +452,22 @@ export default function Receiver() {
 		
 		socket.on('connect', () => {
 			setStatus('connecting...')
-			socket.emit('join-room', roomKey)
+			// Add a small delay to ensure room is created
+			setTimeout(() => {
+				socket.emit('join-room', roomKey)
+			}, 100)
 		})
 		
 		socket.on('room-joined', () => {
 			setStatus('connected')
+			if (process.env.NODE_ENV === 'development') {
+				console.log('Successfully joined room:', roomKey)
+			}
 		})
 		
 		socket.on('room-not-found', () => {
 			setStatus('room not found')
+			alert('Room not found. Make sure the sender has created the room first.')
 		})
 		
 		socket.on('signal', ({ from, data }) => {
@@ -472,6 +479,11 @@ export default function Receiver() {
 		socket.on('disconnect', () => {
 			setStatus('disconnected')
 			setIsConnected(false)
+		})
+		
+		socket.on('error', (error) => {
+			setStatus('error')
+			alert('Connection error: ' + error)
 		})
 	}
 
@@ -508,7 +520,7 @@ export default function Receiver() {
 			case 'connecting...': return 'bg-blue-100 text-blue-800'
 			case 'receiving': return 'bg-blue-100 text-blue-800'
 			case 'received': return 'bg-emerald-100 text-emerald-800'
-			case 'room not found': case 'disconnected': case 'channel-error': case 'channel-lost': return 'bg-red-100 text-red-800'
+			case 'room not found': case 'disconnected': case 'channel-error': case 'channel-lost': case 'error': return 'bg-red-100 text-red-800'
 			case 'not connected': return 'bg-gray-100 text-gray-800'
 			default: return 'bg-gray-100 text-gray-800'
 		}

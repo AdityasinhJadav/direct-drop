@@ -236,8 +236,15 @@ function createConnection() {
     socketRef.current = socket
     
     socket.on('connect', () => {
-        setStatus('room created')
+        setStatus('connecting...')
         socket.emit('create-room', roomKey)
+    })
+    
+    socket.on('room-created', () => {
+        setStatus('room created')
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Room created successfully:', roomKey)
+        }
     })
     
     socket.on('peer-joined', () => {
@@ -252,6 +259,11 @@ function createConnection() {
     socket.on('disconnect', () => {
         setStatus('disconnected')
         setIsConnected(false)
+    })
+    
+    socket.on('error', (error) => {
+        setStatus('error')
+        alert('Connection error: ' + error)
     })
 }
 
@@ -695,7 +707,7 @@ function doCreatePeer() {
 			case 'room created': return 'text-green-700'
 			case 'receiver joined': return 'text-green-700'
 			case 'channel-open': return 'text-green-700'
-			case 'disconnected': case 'channel-error': case 'channel-lost': return 'text-red-600'
+			case 'disconnected': case 'channel-error': case 'channel-lost': case 'error': return 'text-red-600'
 			case 'not connected': return 'text-gray-600'
 			default: return 'text-gray-600'
 		}
@@ -703,10 +715,11 @@ function doCreatePeer() {
 
 	const getStatusBadge = () => {
 		switch (status) {
+			case 'connecting...': return 'bg-blue-100 text-blue-800'
 			case 'room created': return 'bg-blue-100 text-blue-800'
 			case 'receiver joined': return 'bg-green-100 text-green-800'
 			case 'channel-open': return 'bg-green-100 text-green-800'
-			case 'disconnected': case 'channel-error': case 'channel-lost': return 'bg-red-100 text-red-800'
+			case 'disconnected': case 'channel-error': case 'channel-lost': case 'error': return 'bg-red-100 text-red-800'
 			case 'not connected': return 'bg-gray-100 text-gray-800'
 			default: return 'bg-gray-100 text-gray-800'
 		}
@@ -773,7 +786,7 @@ function doCreatePeer() {
 								</button>
 								<button 
 									onClick={createConnection}
-									disabled={!roomKey || roomKey.length !== 6}
+									disabled={!roomKey || roomKey.length !== 8}
 									className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition-colors text-sm sm:text-base"
 								>
 									Create Connection

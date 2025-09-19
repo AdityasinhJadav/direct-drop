@@ -14,7 +14,11 @@ const router = createBrowserRouter([
 	{ path: '/', element: <App /> },
 	{ path: '/send', element: <Sender /> },
 	{ path: '/receive', element: <Receiver /> },
-])
+], {
+	future: {
+		v7_startTransition: true
+	}
+})
 
 createRoot(document.getElementById('root')).render(
 	<StrictMode>

@@ -7,6 +7,17 @@ import { FileEncryption } from '../utils/crypto.js'
 
 const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || 'http://localhost:3001'
 
+// Secure room key generation with better entropy
+const generateSecureRoomKey = () => {
+	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+	let result = ''
+	const randomValues = crypto.getRandomValues(new Uint8Array(8))
+	for (let i = 0; i < 8; i++) {
+		result += chars[randomValues[i] % chars.length]
+	}
+	return result
+}
+
 export default function Receiver() {
 	const [roomKey, setRoomKey] = useState('')
 	const [status, setStatus] = useState('not connected')
@@ -552,7 +563,13 @@ export default function Receiver() {
 								))}
 							</div>
 							
-							<div className="flex justify-center">
+							<div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
+								<button 
+									onClick={() => setRoomKey(generateSecureRoomKey())}
+									className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors text-sm sm:text-base"
+								>
+									Generate New
+								</button>
 								<button 
 									onClick={joinRoom}
 									disabled={!roomKey || roomKey.length !== 8}
@@ -759,7 +776,7 @@ export default function Receiver() {
 								</div>
 								<div className="flex items-start gap-2 sm:gap-3">
 									<span className="bg-emerald-100 text-emerald-800 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs sm:text-sm font-bold">3</span>
-									<p className="text-xs sm:text-sm text-gray-600">Enter the 6-character key above</p>
+									<p className="text-xs sm:text-sm text-gray-600">Enter the 8-character key above</p>
 								</div>
 								<div className="flex items-start gap-2 sm:gap-3">
 									<span className="bg-emerald-100 text-emerald-800 rounded-full w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center text-xs sm:text-sm font-bold">4</span>

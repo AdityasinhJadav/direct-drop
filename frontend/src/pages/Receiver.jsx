@@ -5,7 +5,7 @@ import JSZip from 'jszip'
 import pako from 'pako'
 import { FileEncryption } from '../utils/crypto.js'
 
-const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || 'http://localhost:3001'
+const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || (import.meta.env.PROD ? 'https://your-backend-url.vercel.app' : 'http://localhost:3001')
 
 // Secure room key generation with better entropy
 const generateSecureRoomKey = () => {

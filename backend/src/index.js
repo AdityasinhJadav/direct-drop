@@ -52,7 +52,8 @@ const allowedOrigins = process.env.FRONTEND_ORIGIN
 	: [
 		'http://localhost:5173', 
 		'http://localhost:3000',
-		'https://direct-drop-frontend-27m63ajmu-adityas-projects-c8b8f770.vercel.app'
+		'https://direct-drop-frontend-27m63ajmu-adityas-projects-c8b8f770.vercel.app',
+		'https://direct-drop-frontend-at569porz-adityas-projects-c8b8f770.vercel.app'
 	];
 
 app.use(cors({ 

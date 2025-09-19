@@ -35,15 +35,21 @@ export class MultiChannelManager {
         // Only set up handlers once for the physical channel
         if (index === 0) {
             channel.onopen = () => {
-                console.log('Data channel opened')
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Data channel opened')
+                }
             }
 
             channel.onclose = () => {
-                console.log('Data channel closed')
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Data channel closed')
+                }
             }
 
             channel.onerror = (error) => {
-                console.error('Data channel error:', error)
+                if (process.env.NODE_ENV === 'development') {
+                    console.error('Data channel error:', error)
+                }
             }
 
             channel.onbufferedamountlow = () => {

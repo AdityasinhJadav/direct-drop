@@ -414,8 +414,8 @@ export default function Receiver() {
 		newKey[index] = value.toLowerCase()
 		setRoomKey(newKey.join(''))
 		
-		// Auto-focus next input
-		if (value && index < 5) {
+		// Auto-focus next input (support 8 characters now)
+		if (value && index < 7) {
 			const nextInput = document.getElementById(`receiver-key-input-${index + 1}`)
 			nextInput?.focus()
 		}
@@ -538,7 +538,7 @@ export default function Receiver() {
 							<p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6 text-center px-4">Enter the key shared by the sender</p>
 							
 							<div className="flex justify-center gap-1 sm:gap-2 mb-4">
-								{Array.from({ length: 6 }).map((_, index) => (
+								{Array.from({ length: 8 }).map((_, index) => (
 									<input
 										key={index}
 										id={`receiver-key-input-${index}`}
@@ -555,7 +555,7 @@ export default function Receiver() {
 							<div className="flex justify-center">
 								<button 
 									onClick={joinRoom}
-									disabled={!roomKey || roomKey.length !== 6}
+									disabled={!roomKey || roomKey.length !== 8}
 									className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition-colors text-sm sm:text-base"
 								>
 									Join Room

@@ -7,8 +7,19 @@ import { MultiChannelManager, ParallelFileTransfer } from '../utils/multiChannel
 
 const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || 'http://localhost:3001'
 
+// Secure room key generation with better entropy
+const generateSecureRoomKey = () => {
+	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+	let result = ''
+	const randomValues = crypto.getRandomValues(new Uint8Array(8))
+	for (let i = 0; i < 8; i++) {
+		result += chars[randomValues[i] % chars.length]
+	}
+	return result
+}
+
 export default function Sender() {
-	const [roomKey, setRoomKey] = useState(crypto.randomUUID().slice(0, 6))
+	const [roomKey, setRoomKey] = useState(generateSecureRoomKey())
 	const [status, setStatus] = useState('not connected')
 	const [selectedFiles, setSelectedFiles] = useState([])
 	const [currentFileIndex, setCurrentFileIndex] = useState(0)
@@ -58,7 +69,9 @@ export default function Sender() {
 				}
 			}
 		} catch (error) {
-			console.error('Failed to send text message:', error)
+			if (process.env.NODE_ENV === 'development') {
+				console.error('Failed to send text message:', error)
+			}
 		}
 	}
 
@@ -111,14 +124,81 @@ export default function Sender() {
 		return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`
 	}
 
+	// File validation functions
+	const MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024 // 5GB
+	const MAX_TOTAL_SIZE = 10 * 1024 * 1024 * 1024 // 10GB
+	const ALLOWED_TYPES = [
+		// Images
+		'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+		// Videos
+		'video/mp4', 'video/avi', 'video/mov', 'video/wmv', 'video/flv', 'video/webm',
+		// Audio
+		'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/aac', 'audio/flac',
+		// Documents
+		'application/pdf', 'text/plain', 'text/csv', 'application/json',
+		'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+		'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		// Archives
+		'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
+		// Code files
+		'text/javascript', 'text/css', 'text/html', 'application/xml',
+		// Other
+		'application/octet-stream' // Allow unknown types but validate size
+	]
+
+	const validateFile = (file) => {
+		// Check file size
+		if (file.size > MAX_FILE_SIZE) {
+			return { valid: false, error: `File "${file.name}" is too large. Maximum size is ${formatFileSize(MAX_FILE_SIZE)}.` }
+		}
+
+		// Check file type (allow unknown types but warn)
+		if (!ALLOWED_TYPES.includes(file.type) && file.type !== '') {
+			return { valid: true, warning: `File "${file.name}" has an unknown type (${file.type}). Proceed with caution.` }
+		}
+
+		// Check for potentially dangerous file extensions
+		const dangerousExtensions = ['.exe', '.bat', '.cmd', '.scr', '.pif', '.com', '.vbs', '.js', '.jar']
+		const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'))
+		if (dangerousExtensions.includes(fileExtension)) {
+			return { valid: false, error: `File "${file.name}" has a potentially dangerous extension. For security reasons, executable files are not allowed.` }
+		}
+
+		return { valid: true }
+	}
+
+	const validateFiles = (files) => {
+		const errors = []
+		const warnings = []
+		let totalSize = 0
+
+		for (const file of files) {
+			const validation = validateFile(file)
+			if (!validation.valid) {
+				errors.push(validation.error)
+			} else if (validation.warning) {
+				warnings.push(validation.warning)
+			}
+			totalSize += file.size
+		}
+
+		// Check total size
+		if (totalSize > MAX_TOTAL_SIZE) {
+			errors.push(`Total file size (${formatFileSize(totalSize)}) exceeds the maximum limit of ${formatFileSize(MAX_TOTAL_SIZE)}.`)
+		}
+
+		return { valid: errors.length === 0, errors, warnings, totalSize }
+	}
+
 	const handleRoomKeyChange = (index, value) => {
 		if (!/^[a-zA-Z0-9]?$/.test(value)) return
 		const newKey = roomKey.split('')
 		newKey[index] = value.toLowerCase()
 		setRoomKey(newKey.join(''))
 		
-		// Auto-focus next input
-		if (value && index < 5) {
+		// Auto-focus next input (support 8 characters now)
+		if (value && index < 7) {
 			const nextInput = document.getElementById(`key-input-${index + 1}`)
 			nextInput?.focus()
 		}
@@ -132,7 +212,7 @@ export default function Sender() {
 	}
 
 	const generateNewRoomKey = () => {
-		setRoomKey(fileEncryption.current.generateSecureRoomKey())
+		setRoomKey(generateSecureRoomKey())
 	}
 
 	// Initialize encryption when component mounts
@@ -233,7 +313,9 @@ function doCreatePeer() {
         pcRef.current = null
     })
     peer.on('error', (err) => { 
-        console.error('Peer error:', err)
+        if (process.env.NODE_ENV === 'development') {
+            console.error('Peer error:', err)
+        }
         setStatus('channel-error')
         dcRef.current = null
         pcRef.current = null
@@ -546,17 +628,53 @@ function doCreatePeer() {
 
 	function onChooseFiles(e) {
 		const files = Array.from(e.target.files || [])
+		const validation = validateFiles(files)
+		
+		if (!validation.valid) {
+			alert('File validation failed:\n' + validation.errors.join('\n'))
+			return
+		}
+		
+		if (validation.warnings.length > 0) {
+			const proceed = confirm('File validation warnings:\n' + validation.warnings.join('\n') + '\n\nDo you want to proceed?')
+			if (!proceed) return
+		}
+		
 		setSelectedFiles(files)
 	}
 
 	function onChooseFolder(e) {
 		const files = Array.from(e.target.files || [])
+		const validation = validateFiles(files)
+		
+		if (!validation.valid) {
+			alert('File validation failed:\n' + validation.errors.join('\n'))
+			return
+		}
+		
+		if (validation.warnings.length > 0) {
+			const proceed = confirm('File validation warnings:\n' + validation.warnings.join('\n') + '\n\nDo you want to proceed?')
+			if (!proceed) return
+		}
+		
 		setSelectedFiles(files)
 	}
 
 	function onDrop(e) {
 		e.preventDefault()
 		const files = Array.from(e.dataTransfer.files || [])
+		const validation = validateFiles(files)
+		
+		if (!validation.valid) {
+			alert('File validation failed:\n' + validation.errors.join('\n'))
+			return
+		}
+		
+		if (validation.warnings.length > 0) {
+			const proceed = confirm('File validation warnings:\n' + validation.warnings.join('\n') + '\n\nDo you want to proceed?')
+			if (!proceed) return
+		}
+		
 		setSelectedFiles(files)
 	}
 
@@ -632,7 +750,7 @@ function doCreatePeer() {
 							
 							
 							<div className="flex justify-center gap-1 sm:gap-2 mb-4">
-								{Array.from({ length: 6 }).map((_, index) => (
+								{Array.from({ length: 8 }).map((_, index) => (
 									<input
 										key={index}
 										id={`key-input-${index}`}

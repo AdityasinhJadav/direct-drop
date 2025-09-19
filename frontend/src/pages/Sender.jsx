@@ -242,9 +242,6 @@ function createConnection() {
     
     socket.on('room-created', () => {
         setStatus('room created')
-        if (process.env.NODE_ENV === 'development') {
-            console.log('Room created successfully:', roomKey)
-        }
     })
     
     socket.on('peer-joined', () => {

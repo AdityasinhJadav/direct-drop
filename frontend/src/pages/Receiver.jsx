@@ -460,9 +460,6 @@ export default function Receiver() {
 		
 		socket.on('room-joined', () => {
 			setStatus('connected')
-			if (process.env.NODE_ENV === 'development') {
-				console.log('Successfully joined room:', roomKey)
-			}
 		})
 		
 		socket.on('room-not-found', () => {

@@ -485,13 +485,54 @@ export default function Receiver() {
 	}
 
 	function downloadAll() {
+		// On iOS/Safari, download attribute is limited. Fallback to opening in a new tab.
+		const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 		receivedFiles.forEach(file => {
-			const link = document.createElement('a')
-			link.href = file.url
-			link.download = file.name
-			document.body.appendChild(link)
-			link.click()
-			document.body.removeChild(link)
+			if (isIOS) {
+				// Open in a new tab so the user can use "Share/Save to Files"
+				window.open(file.url, '_blank', 'noopener,noreferrer')
+			} else {
+				const link = document.createElement('a')
+				link.href = file.url
+				link.download = file.name
+				link.rel = 'noopener'
+				link.target = '_blank'
+				document.body.appendChild(link)
+				link.click()
+				document.body.removeChild(link)
+			}
+
+  // Robust per-file download that works on Android Chrome and iOS
+  const handleDownload = (file) => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    const isAndroid = /Android/i.test(navigator.userAgent)
+
+    try {
+      if (isIOS) {
+        // iOS: open in new tab to allow Save/Share
+        window.open(file.url, '_blank', 'noopener,noreferrer')
+        return
+      }
+
+      // Create a temporary anchor and click in a user gesture
+      const link = document.createElement('a')
+      link.href = file.url
+      link.download = file.name || 'download'
+      link.rel = 'noopener'
+      if (isAndroid) {
+        // Some Android browsers are picky about target
+        link.target = '_self'
+      } else {
+        link.target = '_blank'
+      }
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch {
+      // Fallback
+      window.open(file.url, '_blank', 'noopener,noreferrer')
+    }
+  }
 		})
 	}
 
@@ -572,17 +613,17 @@ export default function Receiver() {
 								))}
 							</div>
 							
-							<div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
+                            <div className="flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
 								<button 
 									onClick={() => setRoomKey(generateSecureRoomKey())}
-									className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors text-sm sm:text-base"
+                                    className="px-4 py-3 sm:py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors text-base sm:text-base"
 								>
 									Generate New
 								</button>
 								<button 
 									onClick={joinRoom}
 									disabled={!roomKey || roomKey.length !== 8}
-									className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition-colors text-sm sm:text-base"
+                                    className="px-6 py-3 sm:py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-300 text-white rounded-lg font-semibold transition-colors text-base sm:text-base"
 								>
 									Join Room
 								</button>
@@ -664,7 +705,7 @@ export default function Receiver() {
 								</div>
 							</div>
 							
-							<div className="space-y-2">
+                            <div className="space-y-2 max-h-56 sm:max-h-80 overflow-y-auto pr-1">
 								{receivedFiles.map((file, index) => (
 									<div key={index} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 sm:p-3 bg-emerald-50 rounded-lg border border-emerald-200 gap-3 sm:gap-0">
 										<div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -674,7 +715,7 @@ export default function Receiver() {
 												</span>
 											</div>
 											<div className="min-w-0 flex-1">
-												<div className="font-medium text-gray-900 text-sm sm:text-base truncate">{file.name}</div>
+                                                <div className="font-medium text-gray-900 text-base sm:text-base truncate">{file.name}</div>
 												<div className="text-xs sm:text-sm text-gray-600">
 													{formatFileSize(file.size)} • {file.timestamp.toLocaleTimeString()}
 												</div>
@@ -696,13 +737,12 @@ export default function Receiver() {
 												</div>
 											</div>
 										</div>
-										<a 
-											href={file.url} 
-											download={file.name}
-											className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg font-medium transition-colors text-xs sm:text-sm flex-shrink-0 w-full sm:w-auto text-center"
-										>
-											Download
-										</a>
+                                        <button
+                                            onClick={() => handleDownload(file)}
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-3 sm:py-2 rounded-lg font-semibold transition-colors text-sm sm:text-sm flex-shrink-0 w-full sm:w-auto text-center"
+                                        >
+                                            Download
+                                        </button>
 									</div>
 								))}
 							</div>

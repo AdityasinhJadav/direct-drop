@@ -5,7 +5,7 @@ import pako from 'pako'
 import { FileEncryption, KeyExchange } from '../utils/crypto.js'
 import { MultiChannelManager, ParallelFileTransfer } from '../utils/multiChannel.js'
 
-const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || (import.meta.env.PROD ? 'https://direct-drop-ps3hxrhh7-adityas-projects-c8b8f770.vercel.app' : 'http://localhost:3001')
+const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER 
 
 // Secure room key generation with better entropy
 const generateSecureRoomKey = () => {

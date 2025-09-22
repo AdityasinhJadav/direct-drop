@@ -48,13 +48,10 @@ app.use(limiter);
 
 // CORS configuration - SECURE
 const allowedOrigins = process.env.FRONTEND_ORIGIN 
-	? process.env.FRONTEND_ORIGIN.split(',').map(origin => origin.trim())
-	: [
-		'http://localhost:5173', 
-		'http://localhost:3000',
-		'https://direct-drop-frontend-27m63ajmu-adityas-projects-c8b8f770.vercel.app',
-		'https://direct-drop-frontend-at569porz-adityas-projects-c8b8f770.vercel.app'
-	];
+    ? process.env.FRONTEND_ORIGIN.split(',').map(origin => origin.trim())
+    : [
+        'http://localhost:5173'
+    ];
 
 app.use(cors({ 
 	origin: (origin, callback) => {

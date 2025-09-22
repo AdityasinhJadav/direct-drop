@@ -5,7 +5,7 @@ import JSZip from 'jszip'
 import pako from 'pako'
 import { FileEncryption } from '../utils/crypto.js'
 
-const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || (import.meta.env.PROD ? 'https://direct-drop-4kj31raqs-adityas-projects-c8b8f770.vercel.app' : 'http://localhost:3001')
+const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || 'http://localhost:3001'
 
 // Secure room key generation with better entropy
 const generateSecureRoomKey = () => {
@@ -118,7 +118,7 @@ export default function Receiver() {
 			}
 			peerRef.current = null
 		})
-		peer.on('error', (err) => {
+        peer.on('error', (err) => {
 			setStatus('channel-error')
 			peerRef.current = null
 		})
@@ -196,7 +196,7 @@ export default function Receiver() {
 								}
 							}
 							
-							const url = URL.createObjectURL(blob)
+						const url = URL.createObjectURL(blob)
 							const fileInfo = {
 								name: metadataRef.current?.name || `file_${Date.now()}`,
 								size: blob.size, // Use actual blob size
@@ -348,7 +348,7 @@ export default function Receiver() {
                             } catch { setTimeout(sendAck, 50) }
                         }
                         setTimeout(sendAck, 0)
-                    } catch {}
+				} catch {}
                     
                     // Reset for next file
 						bufferRef.current = []
@@ -802,7 +802,7 @@ export default function Receiver() {
 							<h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Room Not Found</h2>
 							<p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 px-4">The room with this key doesn't exist or hasn't been created yet.</p>
 							<p className="text-xs sm:text-sm text-gray-500 px-4">Ask the sender to create the room first, then try again.</p>
-						</div>
+				</div>
 					)}
 				</div>
 

@@ -63,9 +63,7 @@ export const registerServiceWorker = async () => {
       const registration = await navigator.serviceWorker.register('/sw.js')
       return registration
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Service Worker registration failed:', error)
-      }
+      
       return null
     }
   }

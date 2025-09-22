@@ -1,13 +1,9 @@
 import { Link } from 'react-router-dom'
-import { usePWA } from './hooks/usePWA.js'
+// PWA install removed
 import './App.css'
 
 function App() {
-  const { isInstallable, isInstalled, installApp } = usePWA()
-
-  const handleInstall = async () => {
-    await installApp()
-  }
+  
 
   return (
 		<div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
@@ -35,14 +31,7 @@ function App() {
 							>
 								Receive Files
 							</Link>
-							{isInstallable && !isInstalled && (
-								<button
-									onClick={handleInstall}
-									className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium transition-colors"
-								>
-									📱 Install App
-								</button>
-							)}
+              
 						</div>
 					</div>
 				</div>

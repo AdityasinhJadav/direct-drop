@@ -5,7 +5,7 @@ import pako from 'pako'
 import { FileEncryption, KeyExchange } from '../utils/crypto.js'
 import { MultiChannelManager, ParallelFileTransfer } from '../utils/multiChannel.js'
 
-const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || (import.meta.env.PROD ? 'https://direct-drop-4kj31raqs-adityas-projects-c8b8f770.vercel.app' : 'http://localhost:3001')
+const SIGNAL_SERVER = import.meta.env.VITE_SIGNAL_SERVER || (import.meta.env.PROD ? 'https://direct-drop-ps3hxrhh7-adityas-projects-c8b8f770.vercel.app' : 'http://localhost:3001')
 
 // Secure room key generation with better entropy
 const generateSecureRoomKey = () => {
@@ -32,6 +32,7 @@ export default function Sender() {
     const [encryptionKey, setEncryptionKey] = useState(null)
     const [useMultipleChannels, setUseMultipleChannels] = useState(true)
     const [textMessage, setTextMessage] = useState('')
+    const [sentFiles, setSentFiles] = useState([])
 	const fileInputRef = useRef(null)
 	const folderInputRef = useRef(null)
 	const socketRef = useRef(null)
@@ -44,6 +45,25 @@ export default function Sender() {
 	const keyExchange = useRef(new KeyExchange())
 	const multiChannelManager = useRef(null)
 	const parallelTransfer = useRef(null)
+
+	// Helper to immediately drop any references to selected files
+	const clearSelectedFiles = () => {
+		setSelectedFiles([])
+		try { if (fileInputRef.current) fileInputRef.current.value = '' } catch {}
+		try { if (folderInputRef.current) folderInputRef.current.value = '' } catch {}
+	}
+
+    const recordFileSent = (file) => {
+        setSentFiles(prev => [
+            ...prev,
+            {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                timestamp: new Date()
+            }
+        ])
+    }
 
 	// Text message sending function - defined early to be available in JSX
 	const sendTextMessage = () => {
@@ -68,11 +88,7 @@ export default function Sender() {
 					setTextMessage('')
 				}
 			}
-		} catch (error) {
-			if (process.env.NODE_ENV === 'development') {
-				console.error('Failed to send text message:', error)
-			}
-		}
+		} catch (error) {}
 	}
 
 
@@ -91,6 +107,8 @@ export default function Sender() {
 			}
 			setStatus('not connected')
 			setIsConnected(false)
+			// Ensure selected files are dropped on connection change
+			clearSelectedFiles()
 		}
 	}, [roomKey])
 
@@ -256,6 +274,8 @@ function createConnection() {
     socket.on('disconnect', () => {
         setStatus('disconnected')
         setIsConnected(false)
+        // Drop any selected files when connection ends
+        clearSelectedFiles()
     })
     
     socket.on('error', (error) => {
@@ -320,14 +340,15 @@ function doCreatePeer() {
         setStatus('channel-closed')
         dcRef.current = null
         pcRef.current = null
+        // Drop any selected files when channel closes
+        clearSelectedFiles()
     })
     peer.on('error', (err) => { 
-        if (process.env.NODE_ENV === 'development') {
-            console.error('Peer error:', err)
-        }
         setStatus('channel-error')
         dcRef.current = null
         pcRef.current = null
+        // Drop any selected files on error as a safety measure
+        clearSelectedFiles()
     })
 }
 
@@ -348,11 +369,13 @@ function doCreatePeer() {
 			const file = selectedFiles[i]
 			
 			// Use parallel transfer if enabled and available
-			if (useMultipleChannels && parallelTransfer.current) {
-				await sendFileParallel(file, i, selectedFiles.length)
-			} else {
-				await sendSingleFile(file, i, selectedFiles.length)
-			}
+        if (useMultipleChannels && parallelTransfer.current) {
+            await sendFileParallel(file, i, selectedFiles.length)
+        } else {
+            await sendSingleFile(file, i, selectedFiles.length)
+        }
+        // Record successfully sent file
+        recordFileSent(file)
 			
 			if (!dcRef.current || !dcRef.current.connected) {
 				break
@@ -366,6 +389,8 @@ function doCreatePeer() {
 		
 		if (dcRef.current) {
 			setStatus('all-files-sent')
+			// After successful sending of all files, immediately clear any references
+			clearSelectedFiles()
 		}
 	}
 
@@ -377,8 +402,8 @@ function doCreatePeer() {
 			return
 		}
 
-		try {
-			await parallelTransfer.current.transferFile(file, (progress) => {
+        try {
+            await parallelTransfer.current.transferFile(file, (progress) => {
 				setTransferProgress(progress)
 				setStatus(`sending file ${fileIndex + 1}/${totalFiles}: ${file.name} (${Math.round(progress)}%)`)
 			})
@@ -633,6 +658,9 @@ function doCreatePeer() {
     
     // Wait until receiver confirms file persisted
     await ackWaiter
+
+    // If we reach here, consider file sent successfully
+    recordFileSent(file)
 	}
 
 	function onChooseFiles(e) {
@@ -929,6 +957,41 @@ function doCreatePeer() {
 							</div>
 						</div>
 					)}
+
+            {/* Sent Files History */}
+            {sentFiles.length > 0 && (
+                <div className="p-4 sm:p-6">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                        <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Sent Files ({sentFiles.length})</h2>
+                        <button
+                            onClick={() => setSentFiles([])}
+                            className="text-red-600 hover:text-red-700 text-xs sm:text-sm font-medium"
+                        >
+                            Clear List
+                        </button>
+                    </div>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {sentFiles.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 sm:p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-emerald-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <span className="text-emerald-600 text-xs sm:text-sm font-medium">
+                                            {file.name.split('.').pop()?.toUpperCase().slice(0, 3) || 'FILE'}
+                                        </span>
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="font-medium text-gray-900 text-sm sm:text-base truncate">{file.name}</div>
+                                        <div className="text-xs sm:text-sm text-gray-600">
+                                            {formatFileSize(file.size)} • {new Date(file.timestamp).toLocaleTimeString()}
+                                        </div>
+                                    </div>
+                                </div>
+                                <span className="text-emerald-700 text-xs sm:text-sm font-medium flex-shrink-0">Sent</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
 					{/* Transfer Progress */}
 					{status.includes('sending') && (

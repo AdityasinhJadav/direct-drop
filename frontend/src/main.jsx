@@ -5,10 +5,7 @@ import './index.css'
 import App from './App.jsx'
 import Sender from './pages/Sender.jsx'
 import Receiver from './pages/Receiver.jsx'
-import { registerServiceWorker } from './hooks/usePWA.js'
-
-// Register service worker
-registerServiceWorker()
+// Service worker registration removed to disable install/PWA prompts
 
 const router = createBrowserRouter([
 	{ path: '/', element: <App /> },
